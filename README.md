@@ -2,6 +2,17 @@
 
 Self-Supervised Quality Estimation for Machine Translation
 
+```
+@inproceedings{Zheng:2021:EMNLP,
+    title = "Self-Supervised Quality Estimation for Machine Translation",
+    author = "Zheng, Yuanhang and Tan, Zhixing and Zhang, Meng and Maimaiti, Mieradilijiang and Luan, Huanbo and Sun, Maosong and Liu, Qun and Liu, Yang",
+    booktitle = "EMNLP",
+    year = "2021"
+}
+```
+
+Please cite 
+
 ## Requirements
 
 Python 3.6
@@ -19,3 +30,7 @@ Note that we should slightly modify the file `tokenization_bert.py` in Transform
 Training: please refer to the script `train.sh`.
 
 Inference: please refer to the script `predict.sh`.
+
+## Contact
+
+If you have questions, suggestions and bug reports, please email [zyh971025@126.com](mailto:zyh971025@126.com).
