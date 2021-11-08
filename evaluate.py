@@ -4,7 +4,7 @@ import torch
 from torch.nn import CrossEntropyLoss
 from utils import get_n_subwords
 
-def predict(eval_dataloader, model, device, tokenizer, N=7, M=1, mc_dropout=False, prob=False):
+def predict(eval_dataloader, model, device, tokenizer, N=7, M=1, mc_dropout=False):
     if mc_dropout:
         model.train()
     else:
@@ -13,6 +13,7 @@ def predict(eval_dataloader, model, device, tokenizer, N=7, M=1, mc_dropout=Fals
     loss_func = CrossEntropyLoss(reduce=False)
     with torch.no_grad():
         preds = []
+        preds_prob = []
         for b, inputs in enumerate(eval_dataloader):
             output = model(
                 input_ids=inputs['input_ids'].to(device),
@@ -31,10 +32,8 @@ def predict(eval_dataloader, model, device, tokenizer, N=7, M=1, mc_dropout=Fals
                         pos_sep.append(i)
                         break
             for i, l in enumerate(L):
-                if prob:
-                    preds.append(-np.exp(-l[1 : pos_sep[i]]))
-                else:
-                    preds.append(l[1 : pos_sep[i]])
+                preds_prob.append(-np.exp(-l[1 : pos_sep[i]]))
+                preds.append(l[1 : pos_sep[i]])
             if b % 10 == 0:
                 print('Finished batch %d' % b)
         
@@ -47,9 +46,18 @@ def predict(eval_dataloader, model, device, tokenizer, N=7, M=1, mc_dropout=Fals
         for p in preds_final:
             p /= float(M)
 
+        preds_prob_final = []
+        for i, p in enumerate(preds_prob):
+            if i % N == 0:
+                preds_prob_final.append(p)
+            else:
+                preds_prob_final[-1] += p
+        for p in preds_prob_final:
+            p /= float(M)
+
     model.train()
     model.zero_grad()
-    return preds_final
+    return preds_final, preds_prob_final
 
 def f1(hit, pred, gold):
     if hit == 0:

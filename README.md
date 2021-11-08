@@ -2,6 +2,8 @@
 
 Self-Supervised Quality Estimation for Machine Translation
 
+Please cite:
+
 ```
 @inproceedings{Zheng:2021:EMNLP,
     title = "Self-Supervised Quality Estimation for Machine Translation",
@@ -10,8 +12,6 @@ Self-Supervised Quality Estimation for Machine Translation
     year = "2021"
 }
 ```
-
-Please cite 
 
 ## Requirements
 

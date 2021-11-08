@@ -85,21 +85,15 @@ class TrainCollator:
         masked_indices = torch.gather(masked_indices, 1, mask_ids)
         labels[~masked_indices] = -100
 
-        indices_replaced = torch.bernoulli(torch.full(labels.shape, 0.8)).bool() & masked_indices
-        indices_replaced = torch.gather(indices_replaced, 1, mask_ids)
+        indices_replaced = torch.gather(masked_indices, 1, mask_ids)
         inputs[indices_replaced] = self.tokenizer.convert_tokens_to_ids(self.tokenizer.mask_token)
-
-        indices_random = torch.bernoulli(torch.full(labels.shape, 0.5)).bool() & masked_indices & ~indices_replaced
-        indices_random = torch.gather(indices_random, 1, mask_ids)
-        random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
-        inputs[indices_random] = random_words[indices_random]
 
         return inputs, labels
 
 class EvalDataset(Dataset):
     def __init__(self, src_path, tgt_path, tokenizer, block_size, wwm, N, M):
         block_size -= tokenizer.num_special_tokens_to_add(pair=True)
-        n_predicts = [((i + 1) * N) // M - (i * N) // M  for i in range(0, M)]
+        #n_predicts = [((i + 1) * N) // M - (i * N) // M  for i in range(0, M)]
 
         self.examples = []
         num_discarded = 0
@@ -134,26 +128,28 @@ class EvalDataset(Dataset):
                 mask_idx = list(range(1, len_0 + 1))
                 mask_order = list(range(1, len_0 + 1))
             len_m = len(mask_order)
-            for i in range(0, M):
-                random.shuffle(mask_order)
-                start = 0
-                for j in range(0, n_predicts[i]):
-                    end = ((j + 1) * len_m) // n_predicts[i]
-                    input_ids = copy.deepcopy(__input_ids)
-                    labels = copy.deepcopy(__labels)
-                    for __idx in mask_order[start : end]:
-                        idx = __idx
-                        while (idx <= len_0) and (mask_idx[idx - 1] == __idx):
-                            labels[idx] = __input_ids[idx]
-                            input_ids[idx] = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
-                            idx += 1
-                    self.examples.append({
-                        'input_ids': input_ids,
-                        'token_type_ids': token_type_ids,
-                        'attention_mask': attention_mask,
-                        'labels': labels,
-                    })
-                    start = end
+            mask_orders = []
+            for i in range(0, N):
+                mask_orders.append([])
+            for x in mask_order:
+                A = random.sample(range(0, N), M)
+                for a in A:
+                    mask_orders[a].append(x)
+            for i in range(0, N):
+                input_ids = copy.deepcopy(__input_ids)
+                labels = copy.deepcopy(__labels)
+                for __idx in mask_orders[i]:
+                    idx = __idx
+                    while (idx <= len_0) and (mask_idx[idx - 1] == __idx):
+                        labels[idx] = __input_ids[idx]
+                        input_ids[idx] = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
+                        idx += 1
+                self.examples.append({
+                    'input_ids': input_ids,
+                    'token_type_ids': token_type_ids,
+                    'attention_mask': attention_mask,
+                    'labels': labels,
+                })
         fsrc.close()
         ftgt.close()
         print('Due to length limits, %d examples discarded' % num_discarded)

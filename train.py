@@ -37,9 +37,9 @@ parser.add_argument('--eval-block-size', type=int, default=512)
 parser.add_argument('--wwm', action='store_true')
 parser.add_argument('--mlm-probability', type=float, default=0.15)
 
-parser.add_argument('--batch-size', type=int, default=8)
-parser.add_argument('--update-cycle', type=int, default=16)
-parser.add_argument('--eval-batch-size', type=int, default=4)
+parser.add_argument('--batch-size', type=int, default=16)
+parser.add_argument('--update-cycle', type=int, default=8)
+parser.add_argument('--eval-batch-size', type=int, default=8)
 parser.add_argument('--train-steps', type=int, default=100000)
 parser.add_argument('--eval-steps', type=int, default=1000)
 parser.add_argument('--learning-rate', type=float, default=5e-5)
@@ -164,7 +164,7 @@ while True:
             
             if (num_steps == args.train_steps) or (num_steps % args.eval_steps == 0):
                 print('Evaluating...')
-                preds = predict(
+                preds, preds_prob = predict(
                     eval_dataloader=dev_dataloader,
                     model=model,
                     device=device,
@@ -173,15 +173,15 @@ while True:
                     M=1,
                     mc_dropout=False,
                 )
-                if args.dev_tags is not None:
-                    assert(args.dev_hter is None)
-                    eval_score = make_word_outputs_final(preds, args.dev_tgt, tokenizer, threshold_tune=args.dev_tags)[-1]
-                else:
-                    sent_outputs = pd.Series([float(np.mean(w)) for w in preds])
-                    fhter = open(args.dev_hter, 'r', encoding='utf-8')
-                    hter = pd.Series([float(x.strip()) for x in fhter])
-                    fhter.close()
-                    eval_score = float(sent_outputs.corr(hter))
+                eval_score = make_word_outputs_final(preds, args.dev_tgt, tokenizer, threshold_tune=args.dev_tags)[-1]
+                word_scores_prob = make_word_outputs_final(preds_prob, args.dev_tgt, tokenizer, threshold=0.5)[0]
+                sent_outputs = pd.Series([float(np.mean(w)) for w in word_scores_prob])
+                fhter = open(args.dev_hter, 'r', encoding='utf-8')
+                hter = pd.Series([float(x.strip()) for x in fhter])
+                fhter.close()
+                pearson = float(sent_outputs.corr(hter))
+                print('Pearson: %.6f' % pearson)
+                eval_score += pearson
                 print('Validation Score: %.6f, Previous Best Score: %.6f' % (eval_score, best_score))
                 
                 if eval_score > best_score:

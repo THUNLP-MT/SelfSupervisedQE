@@ -26,9 +26,8 @@ parser.add_argument('--block-size', type=int, default=512)
 parser.add_argument('--wwm', action='store_true')
 parser.add_argument('--predict-n', type=int, default=30)
 parser.add_argument('--predict-m', type=int, default=5)
-parser.add_argument('--batch-size', type=int, default=4)
+parser.add_argument('--batch-size', type=int, default=8)
 parser.add_argument('--mc-dropout', action='store_true')
-parser.add_argument('--prob', action='store_true')
 
 parser.add_argument('--checkpoint', type=str, required=True)
 
@@ -69,7 +68,7 @@ test_dataloader = DataLoader(
     collate_fn=eval_collate_fn,
 )
 
-preds = predict(
+preds, preds_prob = predict(
     eval_dataloader=test_dataloader,
     model=model,
     device=device,
@@ -77,7 +76,6 @@ preds = predict(
     N=args.predict_n,
     M=args.predict_m,
     mc_dropout=args.mc_dropout,
-    prob=args.prob,
 )
 
 if args.threshold_tune:
@@ -105,8 +103,10 @@ for o in word_outputs:
     fout_word.write(' '.join(o) + '\n')
 fout_word.close()
 
+word_scores_prob, _, _, _ = make_word_outputs_final(preds_prob, args.test_tgt, tokenizer, threshold=0.5)
+
 fout_sent = open(args.sent_output, 'w')
-sent_outputs = [float(np.mean(w)) for w in word_scores]
+sent_outputs = [float(np.mean(w)) for w in word_scores_prob]
 for o in sent_outputs:
     fout_sent.write(str(o) + '\n')
 fout_sent.close()
