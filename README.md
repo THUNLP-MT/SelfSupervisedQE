@@ -27,6 +27,8 @@ Note that we should slightly modify the file `tokenization_bert.py` in Transform
 
 ## Usage
 
+Data download: please refer to the script `download_data.sh`.
+
 Training: please refer to the script `train.sh`.
 
 Inference: please refer to the script `predict.sh`.
